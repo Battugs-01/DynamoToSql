@@ -26,8 +26,8 @@ class DynamoConfig:
 class PostgresConfig:
     """PostgreSQL configuration"""
     host: str = "localhost"
-    port: int = 5433
-    database: str = "x-meta"
+    port: int = 5432
+    database: str = "xmeta"
     user: str = "postgres"
     password: str = "Pass1234!"
     
@@ -35,8 +35,8 @@ class PostgresConfig:
     def from_env(cls):
         return cls(
             host=os.getenv('PG_HOST', 'localhost'),
-            port=int(os.getenv('PG_PORT', '5433')),
-            database=os.getenv('PG_DATABASE', 'x-meta'),
+            port=int(os.getenv('PG_PORT', '5432')),
+            database=os.getenv('PG_DATABASE', 'xmeta'),
             user=os.getenv('PG_USER', 'postgres'),
             password=os.getenv('PG_PASSWORD', 'Pass1234!')
         )
@@ -52,11 +52,13 @@ class MigrationConfig:
     batch_size: int = 100
     log_level: str = "INFO"
     dry_run: bool = False
+    upsert_mode: bool = True  # True = UPDATE on conflict, False = DO NOTHING on conflict
     
     @classmethod
     def from_env(cls):
         return cls(
             batch_size=int(os.getenv('MIGRATION_BATCH_SIZE', '100')),
             log_level=os.getenv('LOG_LEVEL', 'INFO'),
-            dry_run=os.getenv('DRY_RUN', 'false').lower() == 'true'
+            dry_run=os.getenv('DRY_RUN', 'false').lower() == 'true',
+            upsert_mode=os.getenv('UPSERT_MODE', 'true').lower() == 'true'
         )

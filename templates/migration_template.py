@@ -27,11 +27,26 @@ class TableNameMigration(BaseMigration):
         }
     
     def get_insert_query(self) -> str:
-        """Get PostgreSQL INSERT query"""
+        """Get PostgreSQL INSERT query (skip existing records)"""
         return """
             INSERT INTO your_table_name (
                 id, name, created_at, updated_at
             )
             VALUES (%(id)s, %(name)s, %(created_at)s, %(updated_at)s)
             ON CONFLICT (id) DO NOTHING
+        """
+    
+    def get_upsert_query(self) -> str:
+        """
+        Get PostgreSQL UPSERT query (update existing records)
+        This is used when UPSERT_MODE=true in .env
+        """
+        return """
+            INSERT INTO your_table_name (
+                id, name, created_at, updated_at
+            )
+            VALUES (%(id)s, %(name)s, %(created_at)s, %(updated_at)s)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                updated_at = EXCLUDED.updated_at
         """

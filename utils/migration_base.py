@@ -16,7 +16,6 @@ from config.database import MigrationConfig
 
 logger = logging.getLogger(__name__)
 
-
 class BaseMigration(ABC):
     """Base class for all table migrations"""
     
@@ -52,6 +51,18 @@ class BaseMigration(ABC):
         """Get PostgreSQL INSERT query"""
         pass
     
+    def get_primary_key(self) -> str:
+        """Get primary key column name (default: 'id')"""
+        return 'id'
+    
+    def get_upsert_query(self) -> Optional[str]:
+        """
+        Get PostgreSQL UPSERT query (INSERT ... ON CONFLICT DO UPDATE)
+        Override this method in child class for custom upsert logic
+        Returns None to use default get_insert_query with DO NOTHING
+        """
+        return None
+    
     def convert_epoch_to_iso(self, epoch_value: Any) -> Optional[str]:
         """Convert epoch timestamp to ISO8601 format"""
         if epoch_value is None:
@@ -68,7 +79,17 @@ class BaseMigration(ABC):
         """Convert value to boolean (handles 0/1 to False/True)"""
         if value is None:
             return None
-        return bool(value)
+        return bool(value) 
+
+    def convert_to_boolean_from_int_for_address(self, value: Any) -> Optional[bool]:
+        if value is None:
+            return True
+        if value == 1:
+            return True
+        elif value == 0:
+            return False
+        else:
+            return None
 
     def now_iso(self) -> str:
         """Get current time in ISO8601 format"""
@@ -139,26 +160,42 @@ class BaseMigration(ABC):
     def insert_items(self, items: List[Dict[str, Any]]):
         """Insert transformed items into PostgreSQL with batch processing"""
         if self.config.dry_run:
-            logger.info(f"DRY RUN: Would insert {len(items)} items")
+            logger.info(f"DRY RUN: Would insert/update {len(items)} items")
             return
         
         cursor = self.postgres.get_cursor()
-        query = self.get_insert_query()
+        
+        # Choose query based on upsert mode
+        if self.config.upsert_mode:
+            query = self.get_upsert_query()
+            if query is None:
+                # If no upsert query defined, use insert with DO NOTHING
+                query = self.get_insert_query()
+                logger.warning("UPSERT mode enabled but no get_upsert_query() defined. Using INSERT with ON CONFLICT DO NOTHING")
+            else:
+                logger.info("UPSERT mode enabled: Will UPDATE existing records on conflict")
+        else:
+            query = self.get_insert_query()
+            logger.info("INSERT mode: Will skip existing records (ON CONFLICT DO NOTHING)")
+        
         batch_size = 100
         
         for i, item in enumerate(items):
             try:
                 transformed = self.transform_item(item)
+                if transformed is None:
+                    # Skip items that return None (e.g., missing dependencies)
+                    continue
                 cursor.execute(query, transformed)
                 self.migrated_count += 1
                 
                 if (i + 1) % batch_size == 0:
                     self.postgres.commit()
-                    logger.info(f"Migrated {self.migrated_count} items (committed batch)...")
+                    logger.info(f"Processed {self.migrated_count} items (committed batch)...")
                     
             except Exception as e:
                 item_id = item.get('uid', item.get('id', 'unknown'))
-                logger.error(f"Failed to insert item {item_id}: {e}")
+                logger.error(f"Failed to process item {item_id}: {e}")
                 self.error_count += 1
                 
                 self.postgres.rollback()
@@ -166,7 +203,7 @@ class BaseMigration(ABC):
         
         try:
             self.postgres.commit()
-            logger.info(f"Final batch committed. Total migrated: {self.migrated_count}")
+            logger.info(f"Final batch committed. Total processed: {self.migrated_count}")
         except Exception as e:
             logger.error(f"Failed to commit final batch: {e}")
             self.postgres.rollback()

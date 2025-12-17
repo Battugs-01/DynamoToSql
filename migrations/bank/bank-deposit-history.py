@@ -19,18 +19,28 @@ class BankDepositHistoryMigration(BaseMigration):
 
     def transform_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """Transform DynamoDB user_bank_deposits item to PostgreSQL format"""
+        # Handle USER_NOT_FOUND - set to None (NULL) for nullable user_id
+        user_id = item.get('userId')
+        if user_id == 'USER_NOT_FOUND':
+            user_id = None
+        
+        # Handle EMAIL_NOT_FOUND - set to empty string
+        email = item.get('email')
+        if email == 'EMAIL_NOT_FOUND':
+            email = ''
+        
         return {
             'id': item.get('depositId'),
             'created_at': self.convert_epoch_to_iso(item.get('requestTime')),
             'updated_at': self.convert_epoch_to_iso(item.get('requestTime')),
             'transfer_time': self.convert_epoch_to_iso(item.get('transferTime')),
             'deleted_at': None,
-            'user_id': item.get('userId'),
+            'user_id': user_id,  # Can be None now
             'payment_wallet_id': item.get('paymentWalletId'),
             'deposit_amount': self.convert_to_float(item.get('depositAmount')),
             'currency': item.get('currency'),
             'status': item.get('status'),
-            'email': item.get('email'),
+            'email': email,
             'txn_amount': self.convert_to_float(item.get('txnAmount')),
             'txn_id': item.get('txnId'),
         }    

@@ -22,8 +22,9 @@ class BankAccountVerifyChallangeMigration(BaseMigration):
         # Use code as a deterministic ID base to avoid conflicts
         wallet_code = item.get('walletId')
         bank_code = item.get('bankCode')
+
         return {
-            'id': str(uuid.uuid4()),
+            'id': self.get_id(),
             'created_at': self.convert_epoch_to_iso(item.get('createTime')),
             'updated_at': self.convert_epoch_to_iso(item.get('createTime')),
             'deleted_at': self.convert_epoch_to_iso(item.get('deleteTime')) if item.get('deleteTime') else None,
@@ -38,6 +39,14 @@ class BankAccountVerifyChallangeMigration(BaseMigration):
             'verified_at': self.convert_epoch_to_iso(item.get('verifyTime')) if item.get('verifyTime') else None,
             'user_id': item.get('userId'),
         }
+
+    def get_id(self) -> int:
+        """Get the next bank account verification challenge ID"""
+        if not hasattr(self, '_bank_account_verify_challange_id_counter'):
+            self._bank_account_verify_challange_id_counter = 1
+        else:
+            self._bank_account_verify_challange_id_counter += 1
+        return self._bank_account_verify_challange_id_counter
 
     def get_bank_id(self, bank_code: str) -> str:
         """Get bank ID from bank code"""

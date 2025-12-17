@@ -4,6 +4,9 @@ banks table migration from DynamoDB to PostgreSQL
 from typing import Dict, Any
 from utils.migration_base import BaseMigration
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BankWidthrawalHistoryMigration(BaseMigration):
@@ -21,14 +24,20 @@ class BankWidthrawalHistoryMigration(BaseMigration):
         """Transform DynamoDB user_bank_withdrawals item to PostgreSQL format"""
         bank_code = item.get('bankCode')
         payment_wallet_id = item.get('paymentWalletId')
+        
+        # Handle USER_NOT_FOUND - set to None (NULL) for nullable user_id
+        user_id = item.get('userId')
+        if user_id == 'USER_NOT_FOUND':
+            user_id = None
+        
         return {
             'id': item.get('withdrawalId'),
             'created_at': self.convert_epoch_to_iso(item.get('requestTime')),
             'updated_at': self.convert_epoch_to_iso(item.get('requestTime')),
             'transfer_time': self.convert_epoch_to_iso(item.get('transferTime')),
             'deleted_at': None,
-            'user_id': item.get('userId'),
-            'wallet_id': self.get_payment_wallet_id(payment_wallet_id),
+            'user_id': user_id,  # Can be None now
+            'wallet_id': self.get_payment_wallet_id(payment_wallet_id),  # Can be None now
             'account_number': item.get('accountNumber'),
             'bank_id': self.get_bank_id(bank_code),
             'currency': item.get('currency'),
@@ -52,8 +61,11 @@ class BankWidthrawalHistoryMigration(BaseMigration):
         else:
             raise ValueError(f"Bank code {bank_code} not found")
     
-    def get_payment_wallet_id(self, payment_wallet_id: str) -> str:
-        """Get payment wallet ID from payment wallet ID"""
+    def get_payment_wallet_id(self, payment_wallet_id: str):
+        """Get payment wallet ID from payment wallet ID, return None if not found"""
+        if not payment_wallet_id:
+            return None
+        
         cursor = self.postgres.get_cursor()
         cursor.execute(
             "SELECT id FROM user_bank_account_wallets WHERE wallet_code = %s",
@@ -63,8 +75,9 @@ class BankWidthrawalHistoryMigration(BaseMigration):
         if result:
             return result[0]
         else:
-            raise ValueError(f"Payment wallet ID {payment_wallet_id} not found")
-    
+            # Return None instead of raising error (wallet_id is nullable now)
+            logger.warning(f"Payment wallet ID {payment_wallet_id} not found, setting to NULL")
+            return None
     
     def get_insert_query(self) -> str:
         """Get PostgreSQL INSERT query for bank_withdrawal_histories table"""

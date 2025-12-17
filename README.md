@@ -13,17 +13,38 @@ DynamoToSql/
 │   ├── __init__.py
 │   ├── database.py        # Connection managers
 │   └── migration_base.py  # Base migration class
-├── migrations/            # Individual table migrations
+├── migrations/            # Organized migrations by category
 │   ├── __init__.py
-│   └── users_migration.py # Users table migration
+│   ├── users_migration.py # Users table migration
+│   ├── admin/             # Admin-related migrations
+│   │   ├── admin-group.py
+│   │   └── admin-permissions.py
+│   ├── bank/              # Bank-related migrations
+│   │   ├── banks_migration.py
+│   │   ├── bank-account-wallets_migration.py
+│   │   ├── bank-account-verify-challange.py
+│   │   ├── bank-deposit-history.py
+│   │   └── bank-widthrawal-history.py
+│   ├── crypto/            # Crypto-related migrations
+│   │   ├── coins.py
+│   │   ├── crypto-deposit-history.py
+│   │   ├── crypto-widthraw-history.py
+│   │   └── wallet_addresses_migration.py
+│   ├── exchange/          # Exchange-related migrations
+│   │   └── exchange-bank-tnx-task.py
+│   └── futures/           # Futures trading scripts
+│       ├── get_futures_traders.py
+│       ├── get_status_9_orders.py
+│       └── update_futures_trade_status.py
 ├── templates/             # Migration templates
 │   └── migration_template.py
+├── scripts/               # Utility scripts
 ├── logs/                  # Migration logs
 ├── main.py               # Old single-table script (deprecated)
 ├── migrate.py            # New CLI interface
-├── run.sh               # Quick run script
-├── requirements.txt     # Dependencies
-└── README.md           # This file
+├── run.sh                # Quick run script
+├── requirements.txt      # Dependencies
+└── README.md             # This file
 ```
 
 ## 🚀 Quick Start
@@ -76,10 +97,14 @@ export AWS_SECRET_ACCESS_KEY=your_secret
 
 # PostgreSQL
 export PG_HOST=localhost
-export PG_PORT=5433
-export PG_DATABASE=x-meta
+export PG_PORT=5432
+export PG_DATABASE=xmeta
 export PG_USER=postgres
 export PG_PASSWORD=Pass1234!
+
+# Migration Options
+export MIGRATION_BATCH_SIZE=100
+export UPSERT_MODE=true  # true = UPDATE existing records, false = skip existing
 ```
 
 ## ➕ Adding New Table Migration
@@ -143,9 +168,38 @@ Base migration class includes helpful converters:
 - ✅ **Error Handling**: Continues on individual item errors
 - ✅ **Dry Run Mode**: Test without writing
 - ✅ **Progress Logging**: Real-time progress updates
-- ✅ **Conflict Resolution**: `ON CONFLICT DO NOTHING` для дубликатов
+- ✅ **Upsert Mode**: Choose between INSERT (skip duplicates) or UPSERT (update existing)
+- ✅ **Conflict Resolution**: Smart handling of duplicate records
 - ✅ **Type Conversion**: Automatic data type handling
 - ✅ **Modular Design**: Easy to add new tables
+
+### 🔄 UPSERT Mode
+
+The migration tool supports two modes for handling existing records:
+
+**INSERT Mode** (`UPSERT_MODE=false`):
+
+- Skips existing records (uses `ON CONFLICT DO NOTHING`)
+- Faster for initial migrations
+- Won't update existing data
+
+**UPSERT Mode** (`UPSERT_MODE=true`) - **DEFAULT**:
+
+- Updates existing records (uses `ON CONFLICT DO UPDATE SET`)
+- Perfect for re-running migrations with updated data
+- Ensures data is always up-to-date
+
+**Example:**
+
+```bash
+# Skip existing records
+export UPSERT_MODE=false
+python migrate.py --table users
+
+# Update existing records (default)
+export UPSERT_MODE=true
+python migrate.py --table users
+```
 
 ## 🔍 Troubleshooting
 
@@ -181,4 +235,5 @@ python migrate.py --all --dry-run
 ```bash
 python migrate.py --table users --batch-size 50
 ```
+
 # DynamoToSql

@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from importlib import import_module
 from typing import Dict, List
+from dotenv import load_dotenv
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent))
@@ -22,18 +23,56 @@ from config.database import DynamoConfig, PostgresConfig, MigrationConfig
 from utils.database import DynamoConnection, PostgresConnection
 from utils.migration_base import BaseMigration
 
-
 # Registry of available migrations
 AVAILABLE_MIGRATIONS = {
+    # Users
     'users': 'migrations.users_migration.UsersMigration',
-    'banks': 'migrations.banks_migration.BanksMigration',
-    'bank-account-wallets': 'migrations.bank-account-wallets_migration.BankAccountWalletsMigration',
-    'bank-account-verify-challange': 'migrations.bank-account-verify-challange.BankAccountVerifyChallangeMigration',
-    'bank-deposit-history': 'migrations.bank-deposit-history.BankDepositHistoryMigration',
-    'bank-widthrawal-history': 'migrations.bank-widthrawal-history.BankWidthrawalHistoryMigration',
-    # Add more migrations here as you create them
-    # 'products': 'migrations.products_migration.ProductsMigration',
-    # 'orders': 'migrations.orders_migration.OrdersMigration',
+    
+    # Operation Accounts (internal company accounts)
+    'operation-accounts': 'migrations.operation_accounts_migration.OperationAccountsMigration',
+    
+    # Bank migrations
+    'banks': 'migrations.bank.banks_migration.BanksMigration',
+    'bank-account-wallets': 'migrations.bank.bank-account-wallets_migration.BankAccountWalletsMigration',
+    'bank-account-verify-challange': 'migrations.bank.bank-account-verify-challange.BankAccountVerifyChallangeMigration',
+    'bank-deposit-history': 'migrations.bank.bank-deposit-history.BankDepositHistoryMigration',
+    'bank-widthrawal-history': 'migrations.bank.bank-widthrawal-history.BankWidthrawalHistoryMigration',
+    
+    # Admin migrations
+    'admin-permissions': 'migrations.admin.admin-permissions.AdminPermissionsMigration',
+    'admin-group': 'migrations.admin.admin-group.AdminGroupMigration',
+    'admin-users': 'migrations.admin.admin-users.AdminUsersMigration',
+    
+    # Crypto migrations
+    'coins': 'migrations.crypto.coins.CoinsMigration',
+    'wallet-addresses': 'migrations.crypto.wallet_addresses_migration.WalletAddressesMigration',
+    'crypto-deposit-history': 'migrations.crypto.crypto-deposit-history.CryptoDepositHistoryMigration',
+    'crypto-withdraw-history': 'migrations.crypto.crypto-widthraw-history.CryptoWithdrawHistoryMigration',
+    'withdraw-transfers': 'migrations.crypto.withdraw_transfers_migration.WithdrawTransfersMigration',
+    'failed-crypto-withdrawals': 'migrations.crypto.failed_crypto_withdrawals.FailedCryptoWithdrawalsMigration',
+    'blocked-withdraw-wallets': 'migrations.crypto.blocked_withdraw_wallets.BlockedWithdrawWalletsMigration',
+    'withdraw-bans': 'migrations.crypto.withdraw_bans.WithdrawBansMigration',
+    'delist-coin-transfers': 'migrations.crypto.delisted_coin_transfers.DelistedCoinTransfersMigration',
+    
+    # Exchange migrations
+    'exchange-bank-account-wallets': 'migrations.exchange.exchange-bank-account-wallets.ExchangeBankAccountWalletsMigration',
+    'exchange-bank-txn': 'migrations.exchange.exchange-bank-txn.ExchangeBankTxnMigration',
+    'exchange-bank-tnx-task': 'migrations.exchange.exchange-bank-tnx-task.ExchangeBankTnxTaskMigration',
+    
+    # KYC migrations
+    'kyc-info': 'migrations.kyc.kyc-info.KYCInfoMigration',
+    'jumio-backup': 'migrations.kyc.jumio-backup.JumioBackupMigration',
+    
+    # Asset migrations
+    'user-balance-snapshots': 'migrations.asset.user_balance_snapshots.UserBalanceSnapshotsMigration',
+    'balances': 'migrations.asset.balances.BalancesMigration',
+    
+    # Internal transactions migrations
+    'internal-transactions': 'migrations.internal.internal_transactions.InternalTransactionsMigration',
+    'internal-transaction-record': 'migrations.internal.internal_transactions_record.InternalTransactionsRecordMigration',
+    
+    # Broker migrations (PostgreSQL to PostgreSQL)
+    'broker-users': 'migrations.broker.broker_users.BrokerUsersMigration',
 }
 
 
@@ -77,6 +116,9 @@ def run_migration(table_name: str,
 
 
 def main():
+    # Load environment variables from .env file
+    load_dotenv()
+    
     parser = argparse.ArgumentParser(description='DynamoDB to PostgreSQL Migration Tool')
     
     parser.add_argument('--table', type=str, help='Migrate specific table')

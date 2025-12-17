@@ -1,6 +1,18 @@
 #!/bin/bash
-source venv/bin/activate
 
+# Check if virtual environment exists, if not use system python3
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+    PYTHON_CMD="python"
+else
+    PYTHON_CMD="python3"
+fi
+
+# Load .env file if it exists
+if [ -f ".env" ]; then
+    echo "📁 Loading environment variables from .env file..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
 
 if [ $# -eq 0 ]; then
     echo "🚀 DynamoDB to PostgreSQL Migration Tool"
@@ -12,14 +24,14 @@ if [ $# -eq 0 ]; then
     echo "  ./run.sh users --dry-run   # Dry run users migration"
     echo ""
     echo "Available tables:"
-    python migrate.py --list
+    $PYTHON_CMD migrate.py --list
     exit 0
 fi
 
 if [ "$1" = "all" ]; then
-    python migrate.py --all "${@:2}"
+    $PYTHON_CMD migrate.py --all "${@:2}"
 elif [ "$1" = "list" ]; then
-    python migrate.py --list
+    $PYTHON_CMD migrate.py --list
 else
-    python migrate.py --table "$1" "${@:2}"
+    $PYTHON_CMD migrate.py --table "$1" "${@:2}"
 fi

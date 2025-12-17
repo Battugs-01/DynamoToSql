@@ -19,21 +19,40 @@ class BankAccountWalletsMigration(BaseMigration):
     
     def transform_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """Transform DynamoDB user_bank_account_wallets item to PostgreSQL format"""
+        # Skip items without user_id
+        user_id = item.get('userId')
+        if not user_id:
+            print(f"Warning: Bank account wallet {item.get('walletId', 'unknown')} has no user_id, skipping")
+            return None
+            
+        # Get bank_id from bank code
         bank_code = item.get('bankCode')
+        bank_id = self.get_bank_id(bank_code)
+        if bank_id is None:
+            return None
+            
         return {
-            'id': str(uuid.uuid4()),
+            'id': self.get_id(),
             'created_at': self.convert_epoch_to_iso(item.get('createTime')),
             'updated_at': self.now_iso(),  
             'deleted_at': self.convert_epoch_to_iso(item.get('deleteTime')) if item.get('deleteTime') else None,
             'wallet_code': item.get('walletId'),
             'account_name': item.get('accountName'),
             'account_number': item.get('accountNumber'),
-            'bank_id': self.get_bank_id(bank_code),
+            'bank_id': bank_id,
             'iban': item.get('iban'),
             'status': item.get('status'),
             'verified_at': self.convert_epoch_to_iso(item.get('verifyTime')) if item.get('verifyTime') else None,
-            'user_id': item.get('userId'),
+            'user_id': user_id,
         }
+    
+    def get_id(self) -> int:
+        """Get the next bank account wallet ID"""
+        if not hasattr(self, '_bank_account_wallet_id_counter'):
+            self._bank_account_wallet_id_counter = 1
+        else:
+            self._bank_account_wallet_id_counter += 1
+        return self._bank_account_wallet_id_counter
     
     def get_bank_id(self, bank_code: str) -> str:
         """Get bank ID from bank code"""

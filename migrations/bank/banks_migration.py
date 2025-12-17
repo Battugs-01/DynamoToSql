@@ -19,10 +19,10 @@ class BanksMigration(BaseMigration):
     
     def transform_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """Transform DynamoDB bank item to PostgreSQL format"""
-        # Use code as a deterministic ID base to avoid conflicts
         bank_code = item.get('code')
+
         return {
-            'id': str(uuid.uuid4()),
+            'id': self.get_id(),
             'code': bank_code,
             'created_at': self.now_iso() if not item.get('createdAt') else self.convert_epoch_to_iso(item.get('createdAt')),
             'updated_at': self.now_iso() if not item.get('updatedAt') else self.convert_epoch_to_iso(item.get('updatedAt')),
@@ -34,7 +34,15 @@ class BanksMigration(BaseMigration):
             'name_mn': item.get('nameMn'),
             'order': self.convert_to_integer(item.get('order'))
         }
-
+    
+    def get_id(self) -> int:
+        """Get the next bank ID"""
+        if not hasattr(self, '_bank_id_counter'):
+            self._bank_id_counter = 1
+        else:
+            self._bank_id_counter += 1
+        return self._bank_id_counter
+    
     def get_insert_query(self) -> str:
         """Get PostgreSQL INSERT query for banks table"""
         return """
