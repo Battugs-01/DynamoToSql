@@ -66,6 +66,9 @@ AVAILABLE_MIGRATIONS = {
     # Asset migrations
     'user-balance-snapshots': 'migrations.asset.user_balance_snapshots.UserBalanceSnapshotsMigration',
     'balances': 'migrations.asset.balances.BalancesMigration',
+    'convert-records': 'migrations.asset.convert_records_migration.ConvertRecordsMigration',
+    'buy-now-symbols': 'migrations.asset.buy_now_symbols_migration.BuyNowSymbolsMigration',
+    'buy-now-orders': 'migrations.asset.buy_now_orders_migration.BuyNowOrdersMigration',
     
     # Internal transactions migrations
     'internal-transactions': 'migrations.internal.internal_transactions.InternalTransactionsMigration',
@@ -73,6 +76,12 @@ AVAILABLE_MIGRATIONS = {
     
     # Broker migrations (PostgreSQL to PostgreSQL)
     'broker-users': 'migrations.broker.broker_users.BrokerUsersMigration',
+    
+    # Spot migrations
+    'spot-symbols': 'migrations.spot.spot_symbols_migration.SpotSymbolsMigration',
+    'spot-trade-orders': 'migrations.spot.spot_trade_orders_migration.SpotTradeOrdersMigration',
+    'spot-trade-history': 'migrations.spot.spot_trade_history_migration.SpotTradeHistoryMigration',
+    'spot-commissions': 'migrations.spot.spot_commission_migration.SpotCommissionMigration',
 }
 
 
